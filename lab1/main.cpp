@@ -1,23 +1,57 @@
+#include <fstream>
 #include <iostream>
-#include <vector>
+#include <sstream>
 #include <string>
+#include <vector>
 
-int main()
+bool is_number(const std::string& s)
 {
-    // Program initialization
-    std::cout << "Hello, World!" << std::endl;
+    auto it = s.begin();
+    while (it != s.end() && std::isdigit(*it)) ++it;
+    return !s.empty() && it == s.end();
+}
 
-    // Variables declaration
-    int number = 0;
-    std::string input;
-    std::vector<int> data;
+std::vector<std::vector<int>> parseTspFile(const std::string& filename) {
+    std::vector<std::vector<int>> result;
 
-    // Input example
-    std::cout << "Enter a number: ";
-    std::cin >> number;
+    // read the file
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "File " << filename << " could not be opened." << std::endl;
+        return result;
+    }
 
-    // Processing
-    std::cout << "You entered: " << number << std::endl;
+    std::string line;
+    while (std::getline(file, line)) {
+        std::string token;
+        std::stringstream ss(line);
+        std::vector<int> vec;
+        while (std::getline(ss, token, ' ')) {
+            if (token == "EOF") {
+                return result;
+            } else if (is_number(token)) {
+                vec.push_back(std::stoi(token));
+            }
+        }
 
-    return 0;
+        if (vec.size() == 3) result.push_back(vec);
+    }
+    return result;
+}
+
+std::vector<std::vector<int>> distanceMatrix(const std::vector<std::vector<int>>& points) {
+    std::vector<std::vector<int>> result(points.size(), std::vector<int>(points.size(), 0));
+
+    for (int i = 0; i < points.size(); i++) {
+        for (int j = i + 1; j < points.size(); j++) {
+            result[i][j] =
+        }
+    }
+
+    return result;
+}
+
+int main(int argc, char *argv[]) {
+    const auto list = parseTspFile(argv[1]);
+    std::cout << list.size() << std::endl;
 }
