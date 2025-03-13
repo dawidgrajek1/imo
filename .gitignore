@@ -1,2 +1,6 @@
 lab1/main.exe
 .vscode/settings.json
+.vscode
+.idea
+cmake-build-debug
+kro*
