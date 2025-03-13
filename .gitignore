@@ -4,3 +4,5 @@ lab1/main.exe
 .idea
 cmake-build-debug
 kro*
+.venv
+build
