@@ -161,18 +161,22 @@ int main(int argc, char *argv[]) {
 
     // parsujemy plik .tsp
     const auto list = parseTspFile(argv[1]);
-    writeMatrixToCSV(list, std::string(argv[1]) + "_list.csv");
+    std::string pointsFilename = std::string(argv[1]).substr(0, 7) + "_Pointlist.csv";
+    writeMatrixToCSV(list, pointsFilename);
 
     // obliczamy macierz odległości
     const auto distanceMatrix = calculateDistanceMatrix(list);
-    writeMatrixToCSV(distanceMatrix, std::string(argv[1]) + "_distanceMatrix.csv");
+    writeMatrixToCSV(distanceMatrix, std::string(argv[1]).substr(0, 7) + "_distanceMatrix.csv");
 
     // algorytm 1: greedy nearest neighbour
-    std::cout << "Greedy nearest neighbour" << std::endl;
     int greedyNNScore = 0;
     std::vector<std::vector<int>> greedyNNCycles;
+    std::cout << "Greedy nearest neighbour" << std::endl;
     greedyTpsNN(distanceMatrix, greedyNNCycles, greedyNNScore);
-    writeMatrixToCSV(greedyNNCycles, std::string(argv[1]) + "_greedyNN.csv");
+
+    std::string cyclesFilename = std::string(argv[1]).substr(0, 7) + "_cycles_greedyNN.csv";
+    writeMatrixToCSV(greedyNNCycles, cyclesFilename);
     std::cout << "c1 len\tc2 len\tscore" << std::endl;
     std::cout << greedyNNCycles[0].size() << "\t" <<  greedyNNCycles[1].size() << "\t" << greedyNNScore << std::endl;
+    system(("python ./wizualizacja/main.py " + cyclesFilename + ' ' + pointsFilename).c_str());
 }
