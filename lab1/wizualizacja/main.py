@@ -11,7 +11,7 @@ if len(argv) < 2:
 
 cycle_file = argv[1]
 points_file = argv[2]
-print(cycle_file, points_file)
+# print(cycle_file, points_file)
 dataset, _, algorithm = cycle_file.split('.')[0].split('_')
 
 # Wczytanie danych
