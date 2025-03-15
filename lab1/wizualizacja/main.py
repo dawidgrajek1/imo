@@ -45,7 +45,7 @@ plt.legend()
 for i in range(len(cycle1)-1):
     connectpoints(x, y, cycle1[i], cycle1[i+1], color='red')
     connectpoints(x, y, cycle2[i], cycle2[i+1], color='blue')
-# plt.tight_layout()
+plt.tight_layout()
 plt.savefig(f'{dataset}_{algorithm}.png')
 # plt.show()
 plt.close()

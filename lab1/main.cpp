@@ -44,16 +44,12 @@ std::vector<std::vector<int>> parseTspFile(const std::string& filename) {
     return result;
 }
 
-double distance(const int x1, const int y1, const int x2, const int y2) {
-    return sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2));
-}
-
 std::vector<std::vector<int>> calculateDistanceMatrix(const std::vector<std::vector<int>>& points) {
     std::vector<std::vector<int>> result(points.size(), std::vector<int>(points.size(), 0));
 
     for (int i = 0; i < points.size(); i++) {
         for (int j = i + 1; j < points.size(); j++) {
-            result[i][j] = sqrt(pow(points[i][1] - points[j][1], 2) + pow(points[i][2] - points[j][2], 2)); // NOLINT(*-narrowing-conversions)
+            result[i][j] = round(sqrt(pow(points[i][1] - points[j][1], 2) + pow(points[i][2] - points[j][2], 2))); // NOLINT(*-narrowing-conversions)
             result[j][i] = result[i][j];
         }
     }
@@ -89,11 +85,6 @@ int closestPointIdx(const std::vector<std::vector<int>>& matrix, const int point
 int furthestPointIdx(const std::vector<std::vector<int>>& matrix, const int point_id) {
     return std::distance(matrix[point_id].begin(), std::ranges::max_element(matrix[point_id]));
 }
-
-// void removeByValue(std::vector<int> &vector, const int value) {
-//     vector.erase(std::ranges::remove(vector, value).begin(),
-//                            vector.end());
-// }
 
 bool vectorContains(const std::vector<int> &vector, const int value) {
     return std::ranges::find(vector, value) != vector.end();
@@ -540,8 +531,8 @@ void experimentRunner(const int n, const std::vector<std::vector<int>> &distance
         cumulativeScore += score;
     }
 
-    std::cout << "avg_score\tmin_score\tmax_score" << std::endl;
-    std::cout << cumulativeScore / n << "\t\t" << minScore << "\t\t" << maxScore << std::endl;
+    std::cout << "avg_score (min_score - max_score)" << std::endl;
+    std::cout << cumulativeScore / n << " (" << minScore << " - " << maxScore << ")" << std::endl;
     const auto cyclesFilename = datasetName + "_cycles_" + algName + ".csv";
     writeMatrixToCSV(bestCycles, cyclesFilename);
     system(("python ./wizualizacja/main.py " + cyclesFilename + ' ' + pointsFilename).c_str());
@@ -579,8 +570,8 @@ void experimentRunner(const int n, const std::vector<std::vector<int>> &distance
         cumulativeScore += score;
     }
 
-    std::cout << "avg_score\tmin_score\tmax_score" << std::endl;
-    std::cout << cumulativeScore / n << "\t\t" << minScore << "\t\t" << maxScore << std::endl;
+    std::cout << "avg_score (min_score - max_score)" << std::endl;
+    std::cout << cumulativeScore / n << " (" << minScore << " - " << maxScore << ")" << std::endl;
     const auto cyclesFilename = datasetName + "_cycles_" + algName + ".csv";
     writeMatrixToCSV(bestCycles, cyclesFilename);
     system(("python ./wizualizacja/main.py " + cyclesFilename + ' ' + pointsFilename).c_str());
@@ -620,52 +611,4 @@ int main(int argc, char *argv[]) {
         greedyCycle2Regret(inMatrix, outCycles, score, regretWeight);
     };
     experimentRunner<>(100, distanceMatrix, pointsFilename, regretFunc2, datasetName, "greedyCycleWeighted2Regret", 2.5);
-
-    // algorytm 1: greedy nearest neighbour
-    // int greedyNNScore = 0;
-    // std::vector<std::vector<int>> greedyNNCycles;
-    // std::cout << "Greedy nearest neighbour" << std::endl;
-    // greedyNN(distanceMatrix, greedyNNCycles, greedyNNScore);
-    //
-    // std::string greedyNNCyclesFilename = std::string(argv[1]).substr(0, 7) + "_cycles_greedyNN.csv";
-    // writeMatrixToCSV(greedyNNCycles, greedyNNCyclesFilename);
-    // std::cout << "c1 len\tc2 len\tscore" << std::endl;
-    // std::cout << greedyNNCycles[0].size() << "\t" <<  greedyNNCycles[1].size() << "\t" << greedyNNScore << std::endl;
-    // system(("python ./wizualizacja/main.py " + greedyNNCyclesFilename + ' ' + pointsFilename).c_str());
-
-    // algorytm 2: greedy cycle
-    // long greedyCycleScore = 0;
-    // std::vector<std::vector<int>> greedyCycleCycles;
-    // std::cout << "Greedy cycle" << std::endl;
-    // greedyCycle(distanceMatrix, greedyCycleCycles, greedyCycleScore);
-    //
-    // std::string greedyCycleCyclesFilename = std::string(argv[1]).substr(0, 7) + "_cycles_greedyCycle.csv";
-    // writeMatrixToCSV(greedyCycleCycles, greedyCycleCyclesFilename);
-    // std::cout << "c1 len\tc2 len\tscore" << std::endl;
-    // std::cout << greedyCycleCycles[0].size() << "\t" <<  greedyCycleCycles[1].size() << "\t" << greedyCycleScore << std::endl;
-    // system(("python ./wizualizacja/main.py " + greedyCycleCyclesFilename + ' ' + pointsFilename).c_str());
-
-    // algorytm 3: greedy cycle regret heursistic
-    // long greedyCycleRegretScore = 0;
-    // std::vector<std::vector<int>> greedyCycleRegretCycles;
-    // std::cout << "Greedy cycle 2-regret" << std::endl;
-    // greedyCycle2Regret(distanceMatrix, greedyCycleRegretCycles, greedyCycleRegretScore);
-    //
-    // std::string greedyCycleRegretCyclesFilename = std::string(argv[1]).substr(0, 7) + "_cycles_greedyRegretCycle.csv";
-    // writeMatrixToCSV(greedyCycleRegretCycles, greedyCycleRegretCyclesFilename);
-    // std::cout << "c1 len\tc2 len\tscore" << std::endl;
-    // std::cout << greedyCycleRegretCycles[0].size() << "\t" <<  greedyCycleRegretCycles[1].size() << "\t" << greedyCycleRegretScore << std::endl;
-    // system(("python ./wizualizacja/main.py " + greedyCycleRegretCyclesFilename + ' ' + pointsFilename).c_str());
-
-    // algorytm 4: weighted regret heursistic
-    // long greedyCycleWeightedRegretScore = 0;
-    // std::vector<std::vector<int>> greedyCycleWeightedRegretCycles;
-    // std::cout << "Greedy cycle weighted 2-regret" << std::endl;
-    // greedyCycle2Regret(distanceMatrix, greedyCycleWeightedRegretCycles, greedyCycleWeightedRegretScore, 0.8);
-    //
-    // std::string greedyCycleWeightedRegretCyclesFilename = std::string(argv[1]).substr(0, 7) + "_cycles_greedyWeightedRegretCycle.csv";
-    // writeMatrixToCSV(greedyCycleWeightedRegretCycles, greedyCycleWeightedRegretCyclesFilename);
-    // std::cout << "c1 len\tc2 len\tscore" << std::endl;
-    // std::cout << greedyCycleWeightedRegretCycles[0].size() << "\t" <<  greedyCycleWeightedRegretCycles[1].size() << "\t" << greedyCycleWeightedRegretScore << std::endl;
-    // system(("python ./wizualizacja/main.py " + greedyCycleWeightedRegretCyclesFilename + ' ' + pointsFilename).c_str());
 }
