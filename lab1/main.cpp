@@ -387,6 +387,131 @@ void greedyCycle2Regret(const std::vector<std::vector<int>> &inMatrix, std::vect
     outCycles.push_back(second_cycle);
 }
 
+void greedyCycleWeighted2Regret(const std::vector<std::vector<int>> &inMatrix, std::vector<std::vector<int>> &outCycles, long &score, double regretWeight) {
+    auto first_cycle = std::vector<int>();
+    auto second_cycle = std::vector<int>();
+    auto matrix = inMatrix;
+    for (int i = 0; i < matrix.size(); ++i) {
+        matrix[i][i] = std::numeric_limits<int>::max();;
+    }
+
+    const auto n = matrix.size();
+    int remaining_points = n - 2;
+    std::vector<bool> visited(n, false);
+
+    // losowy punkt
+    std::random_device seed;
+    std::mt19937 gen(seed());
+    std::uniform_int_distribution<> dist(0, n - 1);
+    const int randomNumber = dist(gen);
+
+    // dodajemy do obu cykli po pierwszym wierzchołku
+    // std::ranges::fill(matrix[randomNumber], std::numeric_limits<int>::max(););
+    first_cycle.push_back(randomNumber);
+    visited[randomNumber] = true;
+    second_cycle.push_back(furthestPointIdx(inMatrix, randomNumber));
+    // std::ranges::fill(matrix[second_cycle.back()], std::numeric_limits<int>::max(););
+    visited[second_cycle.back()] = true;
+
+    //dodajemy do obu cykli po drugim najbliższym wierzchołku
+    const auto first_closest1 = closestPointIdx(matrix, first_cycle.back());
+    first_cycle.push_back(first_closest1);
+    visited[first_cycle.back()] = true;
+
+    const auto first_closest2 = closestPointIdx(matrix, second_cycle.back());
+    second_cycle.push_back(first_closest2);
+    visited[second_cycle.back()] = true;
+    remaining_points -= 2;
+
+    do {
+        int best_node = -1;
+        int best_position = -1;
+        long minRegret = std::numeric_limits<long>::lowest();
+
+        for (int i = 0; i < n; ++i) {
+            if (!visited[i]) {
+                long best_increase = std::numeric_limits<long>::max();
+                long second_best_increase = std::numeric_limits<long>::max();
+                int best_pos = -1;
+
+                for (int j = 0; j < first_cycle.size() - 1; ++j) {
+                    const long current_increase =   matrix[first_cycle[j]][i] +
+                                                    matrix[i][first_cycle[j + 1]] -
+                                                    matrix[first_cycle[j]][first_cycle[j + 1]];
+                    if (current_increase < best_increase) {
+                        second_best_increase = best_increase;
+                        best_increase = current_increase;
+                        best_pos = j + 1;
+                    } else if (current_increase < second_best_increase) {
+                        second_best_increase = current_increase;
+                    }
+                }
+
+                const long regret = second_best_increase - best_increase;
+                const double weighted_regret = regretWeight * regret - best_increase;
+                if (weighted_regret > minRegret) {
+                    minRegret = weighted_regret;
+                    best_node = i;
+                    best_position = best_pos;
+                }
+            }
+        }
+        // wstaw najlepszy wierzchołek w najlepsze miejsce
+        first_cycle.insert(first_cycle.begin() + best_position, best_node);
+        visited[best_node] = true;
+        remaining_points--;
+
+        if (remaining_points <= 0) {
+            continue;
+        }
+
+        best_node = -1;
+        best_position = -1;
+        minRegret = std::numeric_limits<long>::lowest();
+
+        for (int i = 0; i < n; ++i) {
+            if (!visited[i]) {
+                long best_increase = std::numeric_limits<long>::max();
+                long second_best_increase = std::numeric_limits<long>::max();
+                int best_pos = -1;
+
+                for (int j = 0; j < second_cycle.size() - 1; ++j) {
+                    const long current_increase =   matrix[second_cycle[j]][i] +
+                                                    matrix[i][second_cycle[j + 1]] -
+                                                    matrix[second_cycle[j]][second_cycle[j + 1]];
+                    if (current_increase < best_increase) {
+                        second_best_increase = best_increase;
+                        best_increase = current_increase;
+                        best_pos = j + 1;
+                    } else if (current_increase < second_best_increase) {
+                        second_best_increase = current_increase;
+                    }
+                }
+
+                const long regret = second_best_increase - best_increase;
+                const double weighted_regret = regretWeight * regret - best_increase;
+                if (weighted_regret > minRegret) {
+                    minRegret = weighted_regret;
+                    best_node = i;
+                    best_position = best_pos;
+                }
+            }
+        }
+        // wstaw najlepszy wierzchołek w najlepsze miejsce
+        second_cycle.insert(second_cycle.begin() + best_position, best_node);
+        visited[best_node] = true;
+        remaining_points--;
+
+    } while (remaining_points > 0);
+
+    first_cycle.push_back(first_cycle[0]);
+    second_cycle.push_back(second_cycle[0]);
+
+    score = calculateScore(matrix, first_cycle) + calculateScore(matrix, second_cycle);
+    outCycles.push_back(first_cycle);
+    outCycles.push_back(second_cycle);
+}
+
 int main(int argc, char *argv[]) {
 
     // parsujemy plik .tsp
@@ -423,17 +548,26 @@ int main(int argc, char *argv[]) {
     // system(("python ./wizualizacja/main.py " + greedyCycleCyclesFilename + ' ' + pointsFilename).c_str());
 
     // algorytm 3: greedy cycle regret heursistic
-    long greedyCycleRegretScore = 0;
-    std::vector<std::vector<int>> greedyCycleRegretCycles;
-    std::cout << "Greedy cycle" << std::endl;
-    greedyCycle2Regret(distanceMatrix, greedyCycleRegretCycles, greedyCycleRegretScore);
-
-    std::string greedyCycleRegretCyclesFilename = std::string(argv[1]).substr(0, 7) + "_cycles_greedyRegretCycle.csv";
-    writeMatrixToCSV(greedyCycleRegretCycles, greedyCycleRegretCyclesFilename);
-    std::cout << "c1 len\tc2 len\tscore" << std::endl;
-    std::cout << greedyCycleRegretCycles[0].size() << "\t" <<  greedyCycleRegretCycles[1].size() << "\t" << greedyCycleRegretScore << std::endl;
-    system(("python ./wizualizacja/main.py " + greedyCycleRegretCyclesFilename + ' ' + pointsFilename).c_str());
+    // long greedyCycleRegretScore = 0;
+    // std::vector<std::vector<int>> greedyCycleRegretCycles;
+    // std::cout << "Greedy cycle 2-regret" << std::endl;
+    // greedyCycle2Regret(distanceMatrix, greedyCycleRegretCycles, greedyCycleRegretScore);
+    //
+    // std::string greedyCycleRegretCyclesFilename = std::string(argv[1]).substr(0, 7) + "_cycles_greedyRegretCycle.csv";
+    // writeMatrixToCSV(greedyCycleRegretCycles, greedyCycleRegretCyclesFilename);
+    // std::cout << "c1 len\tc2 len\tscore" << std::endl;
+    // std::cout << greedyCycleRegretCycles[0].size() << "\t" <<  greedyCycleRegretCycles[1].size() << "\t" << greedyCycleRegretScore << std::endl;
+    // system(("python ./wizualizacja/main.py " + greedyCycleRegretCyclesFilename + ' ' + pointsFilename).c_str());
 
     // algorytm 4: weighted regret heursistic
+    long greedyCycleWeightedRegretScore = 0;
+    std::vector<std::vector<int>> greedyCycleWeightedRegretCycles;
+    std::cout << "Greedy cycle weighted 2-regret" << std::endl;
+    greedyCycleWeighted2Regret(distanceMatrix, greedyCycleWeightedRegretCycles, greedyCycleWeightedRegretScore, 0.8);
 
+    std::string greedyCycleWeightedRegretCyclesFilename = std::string(argv[1]).substr(0, 7) + "_cycles_greedyWeightedRegretCycle.csv";
+    writeMatrixToCSV(greedyCycleWeightedRegretCycles, greedyCycleWeightedRegretCyclesFilename);
+    std::cout << "c1 len\tc2 len\tscore" << std::endl;
+    std::cout << greedyCycleWeightedRegretCycles[0].size() << "\t" <<  greedyCycleWeightedRegretCycles[1].size() << "\t" << greedyCycleWeightedRegretScore << std::endl;
+    system(("python ./wizualizacja/main.py " + greedyCycleWeightedRegretCyclesFilename + ' ' + pointsFilename).c_str());
 }
