@@ -43,6 +43,10 @@ std::vector<std::vector<int>> parseTspFile(const std::string& filename) {
     return result;
 }
 
+double distance(const int x1, const int y1, const int x2, const int y2) {
+    return sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2));
+}
+
 std::vector<std::vector<int>> calculateDistanceMatrix(const std::vector<std::vector<int>>& points) {
     std::vector<std::vector<int>> result(points.size(), std::vector<int>(points.size(), 0));
 
@@ -94,12 +98,20 @@ bool vectorContains(const std::vector<int> &vector, const int value) {
     return std::ranges::find(vector, value) != vector.end();
 }
 
-void greedyTpsNN(const std::vector<std::vector<int>> &inMatrix, std::vector<std::vector<int>> &outCycles, int &score) {
+int calculateScore(const std::vector<std::vector<int>>& matrix, const std::vector<int>& cycle) {
+    int score = 0;
+    for (size_t i = 0; i < cycle.size() - 1; ++i) {
+        score += matrix[cycle[i]][cycle[i + 1]];
+    }
+    return score;
+}
+
+void greedyNN(const std::vector<std::vector<int>> &inMatrix, std::vector<std::vector<int>> &outCycles, int &score) {
     auto first_cycle = std::vector<int>();
     auto second_cycle = std::vector<int>();
     auto matrix = inMatrix;
     for (int i = 0; i < matrix.size(); ++i) {
-        matrix[i][i] = INT_MAX;
+        matrix[i][i] = std::numeric_limits<int>::max();;
     }
 
     const auto n = matrix.size();
@@ -115,12 +127,12 @@ void greedyTpsNN(const std::vector<std::vector<int>> &inMatrix, std::vector<std:
     // std::ranges::fill(matrix[randomNumber], INT_MAX);
     first_cycle.push_back(randomNumber);
     for (int i = 0; i < n; ++i) {
-        matrix[i][randomNumber] = INT_MAX;
+        matrix[i][randomNumber] = std::numeric_limits<int>::max();;
     }
     second_cycle.push_back(furthestPointIdx(inMatrix, randomNumber));
     // std::ranges::fill(matrix[second_cycle.back()], INT_MAX);
     for (int i = 0; i < n; ++i) {
-        matrix[i][second_cycle.back()] = INT_MAX;
+        matrix[i][second_cycle.back()] = std::numeric_limits<int>::max();;
     }
     do {
         auto last1 = first_cycle.back();
@@ -129,7 +141,7 @@ void greedyTpsNN(const std::vector<std::vector<int>> &inMatrix, std::vector<std:
         score += inMatrix[last1][closest1];
         // std::ranges::fill(matrix[closest1], INT_MAX);
         for (int i = 0; i < n; ++i) {
-            matrix[i][closest1] = INT_MAX;
+            matrix[i][closest1] = std::numeric_limits<int>::max();;
         }
         remaining_points--;
 
@@ -143,7 +155,7 @@ void greedyTpsNN(const std::vector<std::vector<int>> &inMatrix, std::vector<std:
         score += inMatrix[closest2][last2];
         // std::ranges::fill(matrix[closest2], INT_MAX);
         for (int i = 0; i < n; ++i) {
-            matrix[i][closest2] = INT_MAX;
+            matrix[i][closest2] = std::numeric_limits<int>::max();;
         }
         remaining_points--;
     } while (remaining_points > 0);
@@ -153,6 +165,101 @@ void greedyTpsNN(const std::vector<std::vector<int>> &inMatrix, std::vector<std:
     second_cycle.push_back(second_cycle[0]);
 
     score += inMatrix[second_cycle[0]][second_cycle[second_cycle.size() - 2]];
+    outCycles.push_back(first_cycle);
+    outCycles.push_back(second_cycle);
+}
+
+void greedyCycle(const std::vector<std::vector<int>> &inMatrix, std::vector<std::vector<int>> &outCycles, long &score) {
+    auto first_cycle = std::vector<int>();
+    auto second_cycle = std::vector<int>();
+    auto matrix = inMatrix;
+    for (int i = 0; i < matrix.size(); ++i) {
+        matrix[i][i] = std::numeric_limits<int>::max();;
+    }
+
+    const auto n = matrix.size();
+    int remaining_points = n - 2;
+    std::vector<bool> visited(n, false);
+
+    // losowy punkt
+    std::random_device seed;
+    std::mt19937 gen(seed());
+    std::uniform_int_distribution<> dist(0, n - 1);
+    const int randomNumber = dist(gen);
+
+    // dodajemy do obu cykli po pierwszym wierzchołku
+    // std::ranges::fill(matrix[randomNumber], std::numeric_limits<int>::max(););
+    first_cycle.push_back(randomNumber);
+    visited[randomNumber] = true;
+    second_cycle.push_back(furthestPointIdx(inMatrix, randomNumber));
+    // std::ranges::fill(matrix[second_cycle.back()], std::numeric_limits<int>::max(););
+    visited[second_cycle.back()] = true;
+
+    //dodajemy do obu cykli po drugim najbliższym wierzchołku
+    const auto first_closest1 = closestPointIdx(matrix, first_cycle.back());
+    first_cycle.push_back(first_closest1);
+    visited[first_cycle.back()] = true;
+
+    const auto first_closest2 = closestPointIdx(matrix, second_cycle.back());
+    second_cycle.push_back(first_closest2);
+    visited[second_cycle.back()] = true;
+    remaining_points -= 2;
+
+    do {
+        int best_node = -1;
+        int best_position = -1;
+        long min_increase = std::numeric_limits<long>::max();
+
+        for (int i = 0; i < n; ++i) {
+            if (!visited[i]) {
+                for (int j = 0; j < first_cycle.size() - 1; ++j) {
+                    const long current_increase =   matrix[first_cycle[j]][i] +
+                                                    matrix[i][first_cycle[j + 1]] -
+                                                    matrix[first_cycle[j]][first_cycle[j + 1]];
+                    if (current_increase < min_increase) {
+                        min_increase = current_increase;
+                        best_node = i;
+                        best_position = j + 1;
+                    }
+                }
+            }
+        }
+        // wstaw najlepszy wierzchołek w najlepsze miejsce
+        first_cycle.insert(first_cycle.begin() + best_position, best_node);
+        visited[best_node] = true;
+        remaining_points--;
+
+        if (remaining_points <= 0) {
+            continue;
+        }
+
+        best_node = -1;
+        best_position = -1;
+        min_increase = std::numeric_limits<long>::max();
+
+        for (int i = 0; i < n; ++i) {
+            if (!visited[i]) {
+                for (int j = 0; j < second_cycle.size() - 1; ++j) {
+                    const long current_increase = matrix[second_cycle[j]][i] + matrix[i][second_cycle[j + 1]] - matrix[second_cycle[j]][second_cycle[j + 1]];
+                    if (current_increase < min_increase) {
+                        min_increase = current_increase;
+                        best_node = i;
+                        best_position = j + 1;
+                    }
+                }
+            }
+        }
+        // wstaw najlepszy wierzchołek w najlepsze miejsce
+        second_cycle.insert(second_cycle.begin() + best_position, best_node);
+        visited[best_node] = true;
+        remaining_points--;
+
+    } while (remaining_points > 0);
+
+    first_cycle.push_back(first_cycle[0]);
+    second_cycle.push_back(second_cycle[0]);
+
+    score = calculateScore(matrix, first_cycle) + calculateScore(matrix, second_cycle);
     outCycles.push_back(first_cycle);
     outCycles.push_back(second_cycle);
 }
@@ -169,14 +276,32 @@ int main(int argc, char *argv[]) {
     writeMatrixToCSV(distanceMatrix, std::string(argv[1]).substr(0, 7) + "_distanceMatrix.csv");
 
     // algorytm 1: greedy nearest neighbour
-    int greedyNNScore = 0;
-    std::vector<std::vector<int>> greedyNNCycles;
-    std::cout << "Greedy nearest neighbour" << std::endl;
-    greedyTpsNN(distanceMatrix, greedyNNCycles, greedyNNScore);
+    // int greedyNNScore = 0;
+    // std::vector<std::vector<int>> greedyNNCycles;
+    // std::cout << "Greedy nearest neighbour" << std::endl;
+    // greedyNN(distanceMatrix, greedyNNCycles, greedyNNScore);
+    //
+    // std::string greedyNNCyclesFilename = std::string(argv[1]).substr(0, 7) + "_cycles_greedyNN.csv";
+    // writeMatrixToCSV(greedyNNCycles, greedyNNCyclesFilename);
+    // std::cout << "c1 len\tc2 len\tscore" << std::endl;
+    // std::cout << greedyNNCycles[0].size() << "\t" <<  greedyNNCycles[1].size() << "\t" << greedyNNScore << std::endl;
+    // system(("python ./wizualizacja/main.py " + greedyNNCyclesFilename + ' ' + pointsFilename).c_str());
 
-    std::string cyclesFilename = std::string(argv[1]).substr(0, 7) + "_cycles_greedyNN.csv";
-    writeMatrixToCSV(greedyNNCycles, cyclesFilename);
-    std::cout << "c1 len\tc2 len\tscore" << std::endl;
-    std::cout << greedyNNCycles[0].size() << "\t" <<  greedyNNCycles[1].size() << "\t" << greedyNNScore << std::endl;
-    system(("python ./wizualizacja/main.py " + cyclesFilename + ' ' + pointsFilename).c_str());
+    // algorytm 2: greedy cycle
+    // long greedyCycleScore = 0;
+    // std::vector<std::vector<int>> greedyCycleCycles;
+    // std::cout << "Greedy cycle" << std::endl;
+    // greedyCycle(distanceMatrix, greedyCycleCycles, greedyCycleScore);
+    //
+    // std::string greedyCycleCyclesFilename = std::string(argv[1]).substr(0, 7) + "_cycles_greedyCycle.csv";
+    // writeMatrixToCSV(greedyCycleCycles, greedyCycleCyclesFilename);
+    // std::cout << "c1 len\tc2 len\tscore" << std::endl;
+    // std::cout << greedyCycleCycles[0].size() << "\t" <<  greedyCycleCycles[1].size() << "\t" << greedyCycleScore << std::endl;
+    // system(("python ./wizualizacja/main.py " + greedyCycleCyclesFilename + ' ' + pointsFilename).c_str());
+
+    // algorytm 3: greedy cycle regret heursistic
+
+
+    // algorytm 4: weighted regret heursistic
+
 }
